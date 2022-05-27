@@ -1,4 +1,8 @@
-library(survminer)
+library(data.table)
+library(glmnet)
+library(survival)
+library(survAUC)
+library(ggplot2)
 source("02_models/utils.R")
 finalTableDT <- fread("table1yrAllCause.csv")[, -c("proc_date")]
 #exclude patient, scoreii_log, calc_sts, image1, image3, proc_access1, proc_access2, tte measurements
@@ -87,7 +91,11 @@ concPvalTable2 <- setorder(concPvalTable2, pvalueAvg)
 head(concPvalTable2,1)
 
 #LASSO-on-all: Smaller Model
-fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_statin + medi_diuretic + hb + block + gradient_mean + medi_combi1 + regurg_mitral3'
+#fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_statin + medi_diuretic + hb + block + gradient_mean + medi_combi1 + regurg_mitral3'
+
+table1yrAll <- table1yrAll[, regurg_stratified := ifelse(regurg_tricuspid3 == 1 | regurg_mitral3 == 1, 1, 0)]
+
+fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_diuretic + hb + block + gradient_mean + regurg_stratified'
 modelAllSmaller<- coxph(as.formula(fAllSmaller), table1yrAll, x = T)
 print(summary(modelAllSmaller))
 residuals <- crossvalidation2(fAllSmaller, table1yrAll)
