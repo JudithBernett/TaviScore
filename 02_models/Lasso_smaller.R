@@ -93,9 +93,9 @@ head(concPvalTable2,1)
 #LASSO-on-all: Smaller Model
 #fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_statin + medi_diuretic + hb + block + gradient_mean + medi_combi1 + regurg_mitral3'
 
-table1yrAll <- table1yrAll[, regurg_stratified := ifelse(regurg_tricuspid3 == 1 | regurg_mitral3 == 1, 1, 0)]
+#table1yrAll <- table1yrAll[, regurg_stratified := ifelse(regurg_tricuspid3 == 1 | regurg_mitral3 == 1, 1, 0)]
 
-fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_diuretic + hb + block + gradient_mean + regurg_stratified'
+fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_diuretic + hb + regurg_mitral34'
 modelAllSmaller<- coxph(as.formula(fAllSmaller), table1yrAll, x = T)
 print(summary(modelAllSmaller))
 residuals <- crossvalidation2(fAllSmaller, table1yrAll)

@@ -34,7 +34,7 @@ table1yrIntermediate <- table1yrIntermediate_sts[,-"calc_sts"]
 
 repeat_lasso <- function(table) {
   coef_list <- list()
-  for (i in seq(1, 100)) {
+  for (i in seq(1, 20)) {
     print(i)
     cv.fit <-
       cv.glmnet(
@@ -70,10 +70,10 @@ repeat_lasso <- function(table) {
 #occurrences <- as.data.table(cbind(vec = unique(coef_list), n = tabulate(match(coef_list, unique(coef_list)))))
 
 table1yrIntermediate <- table1yrIntermediate[, ccs_stratified := ifelse(ap_ccs0 == 1 | ap_ccs1 == 1, 1, 0)]
-table1yrIntermediate <- table1yrIntermediate[, tricusp_stratified := ifelse(regurg_tricuspid3 == 1 | regurg_mitral3 == 1, 1, 0)]
+table1yrIntermediate <- table1yrIntermediate[, regurg_tri_mit_34 := ifelse(regurg_tricuspid34 == 1 | regurg_mitral34 == 1, 1, 0)]
 
 fintermed <-
-  'Surv(time, event) ~ sex + copd + ad + medi_diuretic + hb + ccs_stratified + tricusp_stratified'
+  'Surv(time, event) ~ sex + copd + ad + medi_diuretic + hb + ccs_stratified + regurg_tricuspid34 + regurg_mitral34'
 modelintermed <- coxph(as.formula(fintermed), table1yrIntermediate)
 print(summary(modelintermed))
 residuals <- crossvalidation2(fintermed, table1yrIntermediate)

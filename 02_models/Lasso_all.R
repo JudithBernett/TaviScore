@@ -56,15 +56,15 @@ for(i in seq(1,100)){
 }
 
 occurrences <- as.data.table(cbind(vec = unique(coef_list), n = tabulate(match(coef_list, unique(coef_list)))))
-fAll13 <- paste0('Surv(time, event) ~ ', paste(occurrences$vec[[1]], collapse = " + "))
+fAll14 <- paste0('Surv(time, event) ~ ', paste(occurrences$vec[[1]], collapse = " + "))
 fAll15 <- paste0('Surv(time, event) ~ ', paste(occurrences$vec[[2]], collapse = " + "))
-fAll17 <- paste0('Surv(time, event) ~ ', paste(occurrences$vec[[3]], collapse = " + "))
+fAll12 <- paste0('Surv(time, event) ~ ', paste(occurrences$vec[[3]], collapse = " + "))
 
 #fAll <-
 #  'Surv(time, event) ~ sex + age + copd + valvulo + ad + medi_anticoagu + medi_statin + medi_diuretic + medi_insulin + hb + block + gradient_mean + lvef + medi_combi1 + rhythm2 + regurg_mitral3 + regurg_tricuspid3'
-modelAll <- coxph(as.formula(fAll15), table1yrAll, x = T)
+modelAll <- coxph(as.formula(fAll12), table1yrAll, x = T)
 print(summary(modelAll))
-residuals <- crossvalidation2(fAll15, table1yrAll)
+residuals <- crossvalidation2(fAll12, table1yrAll)
 
 tableEvent0 <- table1yrAll[table1yrAll$event == 0,]
 tableEvent1 <- table1yrAll[table1yrAll$event == 1,]

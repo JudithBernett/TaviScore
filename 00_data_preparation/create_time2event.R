@@ -322,6 +322,11 @@ for(col in factorVars){
   baseline <- cbind(baseline, booleanFactor)
 }
 
+# summarize regurg_tricuspid 3 + 4 and regurg_mitral 3 + 4 and regurg_aortic 3 + 4
+baseline$regurg_aortic34 <- ifelse(baseline$regurg_aortic3 == 1 | baseline$regurg_aortic4 == 1, 1, 0)
+baseline$regurg_mitral34 <- ifelse(baseline$regurg_mitral3 == 1 | baseline$regurg_mitral4 == 1, 1, 0)
+baseline$regurg_tricuspid34 <- ifelse(baseline$regurg_tricuspid3 == 1 | baseline$regurg_tricuspid4 == 1, 1, 0)
+
 # exclude low variance again:
 print("Exclude near zero variances again ...")
 baseline <- baseline[,-caret::nearZeroVar(baseline)]
@@ -347,3 +352,4 @@ remove(i)
 remove(path)
 remove(proc_date)
 remove(row)
+
