@@ -28,9 +28,11 @@ table1yrIntermediate_sts <-
     "tte_regurg_tricuspid2",
     "tte_regurg_tricuspid3"
   )]
-table1yrIntermediate_sts <-
+table1yrIntermediate_sts <- table1yrIntermediate_sts[, ccs_stratified := ifelse(ap_ccs0 == 1 | ap_ccs1 == 1, 1, 0)]
+table1yrIntermediate_sts <- table1yrIntermediate_sts[, regurg_tri_mit_34 := ifelse(regurg_tricuspid34 == 1 | regurg_mitral34 == 1, 1, 0)]
+table1yrIntermediate <-
   table1yrIntermediate_sts[table1yrIntermediate_sts$calc_sts <= 8,]
-table1yrIntermediate <- table1yrIntermediate_sts[,-"calc_sts"]
+#table1yrIntermediate <- table1yrIntermediate[,-"calc_sts"]
 
 repeat_lasso <- function(table) {
   coef_list <- list()
@@ -69,81 +71,75 @@ repeat_lasso <- function(table) {
 #coef_list <- repeat_lasso(table1yrIntermediate)
 #occurrences <- as.data.table(cbind(vec = unique(coef_list), n = tabulate(match(coef_list, unique(coef_list)))))
 
-table1yrIntermediate <- table1yrIntermediate[, ccs_stratified := ifelse(ap_ccs0 == 1 | ap_ccs1 == 1, 1, 0)]
-table1yrIntermediate <- table1yrIntermediate[, regurg_tri_mit_34 := ifelse(regurg_tricuspid34 == 1 | regurg_mitral34 == 1, 1, 0)]
-
 fintermed <-
   'Surv(time, event) ~ sex + copd + ad + medi_diuretic + hb + ccs_stratified + regurg_tricuspid34 + regurg_mitral34'
 modelintermed <- coxph(as.formula(fintermed), table1yrIntermediate)
 print(summary(modelintermed))
 residuals <- crossvalidation2(fintermed, table1yrIntermediate)
 
-#### visualize predictors
-
 visualizePredictors(table1yrIntermediate, modelintermed)
-
-coxtable <-
-  data.table(linear.predictors = modelintermed$linear.predictors, table1yrIntermediate)
-
-tmp <-
-  survfit(Surv(time, event) ~ 1, data = coxtable[linear.predictors >= 0,])
-tmp2 <-
-  survfit(Surv(time, event) ~ 1, data = coxtable[linear.predictors < 0])
-coxtable <-
-  coxtable[, hazard := as.factor(sapply(linear.predictors, function(x) {
-    if (x >= 0)
-      return("intermediate")
-    else
-      return("low")
-  }))]
-survdiff(Surv(time, event) ~ hazard, data = coxtable)
-
-tab <-
-  data.table(
-    time = numeric(),
-    surv = numeric(),
-    std.err = numeric(),
-    label = character()
-  )
-tmptab <-
-  data.table(
-    time = tmp[["time"]],
-    surv = tmp[["surv"]],
-    std.err = tmp[["std.err"]],
-    label = "Intermediate Hazard"
-  )
-tmptab2 <-
-  data.table(
-    time = tmp2[["time"]],
-    surv = tmp2[["surv"]],
-    std.err = tmp2[["std.err"]],
-    label = "Low Hazard"
-  )
-tab <- rbind(tmptab, tmptab2)
-
-# colorblind-friendly palette
-cbPalette <-
-  c(
-    "#999999",
-    "#E69F00",
-    "#56B4E9",
-    "#009E73",
-    "#F0E442",
-    "#0072B2",
-    "#D55E00",
-    "#CC79A7"
-  )
-
-
+coxtable <- data.table(linear.predictors = modelintermed$linear.predictors, table1yrIntermediate)
 #show the Kaplan-Meier curves for the LASSO-on-all: Smaller model
-ggplot(tab, aes(x = time, y = surv, fill = label)) +
-  geom_line(aes(colour = label)) +
-  geom_ribbon(aes(ymin = surv - std.err, ymax = surv + std.err), alpha = 0.1) +
-  theme_bw() +
-  theme(text = element_text(size = 20)) +
-  scale_color_manual(values = c(cbPalette[c(7, 1, 6)]), name = "") +
+compute_kaplan_meier(coxtable)
+#ggsave("./plots/low_intermediate_kaplanMeier_stratified.png", height=5, width=8)
+
+# test on all patients
+
+tableHighRisk <- table1yrIntermediate_sts[calc_sts > 8, ]
+lin_preds <- predict(modelintermed, tableHighRisk, type="lp")
+tableHighRisk$linear.predictors <- lin_preds
+
+pred_table <- coxtable[, -"hazard"]
+pred_table <- rbind(pred_table, tableHighRisk)
+pred_table <- pred_table[, sts_hazard := as.factor(sapply(calc_sts, function(x){
+  if(x < 4){
+    return("low STS")
+  }else if(x > 8){
+    return("high STS")
+  }else{
+    return("intermediate STS")
+  }
+}))]
+pred_table <- pred_table[, hazard := as.factor(sapply(linear.predictors, function(x){
+  if(x < -0.5){
+    return("low hazard")
+  }else if(x > 0.5){
+    return("high hazard")
+  }else{
+    return("intermediate hazard")
+  }
+}))]
+ggplot(pred_table, aes(x = sts_hazard, y = linear.predictors, fill=sts_hazard))+
+  geom_boxplot()+
   scale_fill_manual(values = cbPalette[c(7, 1, 6)], name = "") +
-  labs(x = "Time in days", y = "Survival") +
-  xlim(0, 365) +
-  ylim(0, 1)
-ggsave("./plots/low_intermediate_kaplanMeier_stratified.png", height=5, width=8)
+  theme_bw()+
+  theme(text = element_text(size=20))
+
+ggplot(pred_table, aes(x = hazard, y = calc_sts, fill=hazard))+
+  geom_boxplot()+
+  scale_fill_manual(values = cbPalette[c(7, 1, 6)], name = "") +
+  theme_bw()+
+  theme(text = element_text(size=20))
+
+ggplot(pred_table[calc_sts < 20, ], aes(x = hazard, y = calc_sts, fill=hazard))+
+  geom_boxplot()+
+  scale_fill_manual(values = cbPalette[c(7, 1, 6)], name = "") +
+  theme_bw()+
+  theme(text = element_text(size=20))
+
+
+compute_kaplan_meier(pred_table)
+
+# only for high risk: 
+compute_kaplan_meier(tableHighRisk)
+
+# train model on all:
+modelAll <- coxph(as.formula(fintermed), table1yrIntermediate_sts)
+print(summary(modelAll))
+residuals <- crossvalidation2(fintermed, table1yrIntermediate_sts)
+coxtable <- table1yrIntermediate_sts[, linear.predictors := modelAll$linear.predictors]
+compute_kaplan_meier(coxtable)
+
+
+
+

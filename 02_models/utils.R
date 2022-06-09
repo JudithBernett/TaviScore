@@ -1,3 +1,16 @@
+cbPalette <-
+  c(
+    "#999999",
+    "#E69F00",
+    "#56B4E9",
+    "#009E73",
+    "#F0E442",
+    "#0072B2",
+    "#D55E00",
+    "#CC79A7"
+  )
+
+
 crossvalidation <- function(f, table){
   folds <- split(1:nrow(table),
                  ceiling(seq_along(1:nrow(table))/ceiling(nrow(table)/10)))
@@ -87,19 +100,6 @@ model2table <- function(table, model){
 }
 
 visualizePredictors <- function(table, model){
-  # colorblind-friendly palette
-  cbPalette <-
-    c(
-      "#999999",
-      "#E69F00",
-      "#56B4E9",
-      "#009E73",
-      "#F0E442",
-      "#0072B2",
-      "#D55E00",
-      "#CC79A7"
-    )
-  
   modeltmp <- model2table(table, model)
   g <- ggplot(modeltmp,
          aes(
@@ -114,3 +114,38 @@ visualizePredictors <- function(table, model){
     labs(x = "", y = "Centered linear predictors")
   return(g)
 }
+
+compute_kaplan_meier <- function(table){
+  tmp <- survfit(Surv(time, event)~1, data = table[linear.predictors >= 0.5, ])
+  tmp2 <- survfit(Surv(time, event)~1, data = table[linear.predictors > -0.5 & linear.predictors < 0.5,])
+  tmp3 <- survfit(Surv(time, event)~1, data = table[linear.predictors <= -0.5])
+  table <- table[, hazard := as.factor(sapply(linear.predictors, function(x){
+    if(x >= 0.5) return("high")
+    else if(x <= -0.5) return("low")
+    else return("intermediate")
+  } ))]
+  
+  tab <- data.table(time = numeric(), surv = numeric(), std.err = numeric(), label = character())
+  tmptab <- data.table(time = tmp[["time"]],  surv = tmp[["surv"]], std.err = tmp[["std.err"]], label = "High Hazard")
+  tmptab2 <- data.table(time = tmp2[["time"]],  surv = tmp2[["surv"]], std.err = tmp2[["std.err"]], label = "Intermediate Hazard")
+  tmptab3 <- data.table(time = tmp3[["time"]],  surv = tmp3[["surv"]], std.err = tmp3[["std.err"]], label = "Low Hazard")
+  tab <- rbind(tab, tmptab)
+  tab <- rbind(tab, tmptab2)
+  tab <- rbind(tab, tmptab3)
+  
+  print(survdiff(Surv(time, event) ~ hazard, data = table))
+  
+  g <- ggplot(tab, aes(x = time, y = surv, fill = label))+
+    geom_line(aes(colour = label))+
+    geom_ribbon(aes(ymin = surv-std.err, ymax = surv+std.err), alpha = 0.1)+
+    theme_bw()+
+    theme(text = element_text(size=20))+
+    scale_color_manual(values = c(cbPalette[c(7,1,6)]), name = "")+
+    scale_fill_manual(values = cbPalette[c(7,1,6)], name = "")+
+    labs(x = "Time in days", y = "Survival")+
+    xlim(0,365)+
+    ylim(0,1)
+  return(g)
+}
+
+

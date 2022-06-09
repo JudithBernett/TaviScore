@@ -86,20 +86,8 @@ ggplot(modeltmp, aes(x = as.factor(event), y = residuals)) +
   labs(x = "Event", y = "Residuals of the Cox Model")
 
 #show the distribution of the linear predictors stratified by event
-ggplot(modeltmp,
-       aes(
-         x = as.factor(event),
-         y = linear.predictors,
-         fill =  as.factor(event)
-       )) +
-  geom_violin() +
-  scale_fill_manual(values = cbPalette[c(1, 6)], name = "Deceased\nwithin\none year") +
-  theme_bw() +
-  theme(text = element_text(size = 20)) +
-  labs(x = "", y = "Centered linear predictors")
-
+visualizePredictors(table1yrAll, modeltmp)
 #ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Illustrations_BA/KaplanMeierAllSmaller.png",height = 8, width = 12)
-
 
 tmp <- survfit(Surv(time, event)~1, data = finalTableDT[calc_sts <= 4, ])
 tmp2 <- survfit(Surv(time, event)~1, data = finalTableDT[calc_sts > 4 & calc_sts <=8,])
