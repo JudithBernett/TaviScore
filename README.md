@@ -24,7 +24,7 @@ Main stuff is in 02_models
 Execute `statistical_analyses.R`. T-test results:
 
 | name          | p.value              | p.adjustBH   | significantBH | p.adjustbonferroni | significantbonferroni |
-|---------------|----------------------|--------------|---------------|--------------------|-----------------------|
+|------------|------------|------------|------------|------------|------------|
 | age           | 0.0125234257768774   | 0.0268359124 | 1             | 0.188              | 1                     |
 | height        | 0.482935928103082    | 0.4829359281 | 0             | 1                  | 0                     |
 | weight        | 0.227478736745308    | 0.2938234259 | 0             | 1                  | 0                     |
@@ -44,7 +44,7 @@ Execute `statistical_analyses.R`. T-test results:
 Some Fisher's exact test results:
 
 | name             | p.value              | p.adjustBH   | significantBH | p.adjustbonferroni | significantbonferroni |
-|------------------|----------------------|--------------|---------------|--------------------|-----------------------|
+|------------|------------|------------|------------|------------|------------|
 | sex              | 0.0183086768861968   | 0.0651196902 | 0             | 1                  | 0                     |
 | diab             | 0.0330957099873782   | 0.1049932869 | 0             | 1                  | 0                     |
 | hyper            | 0.509051870376169    | 0.6787358272 | 0             | 1                  | 0                     |
@@ -94,7 +94,7 @@ We decided on `Lasso_smaller.R` for all patients, and `Lasso_intermed_low.R` for
 ### Intermediate/low model: n= 1268, number of events= 93
 
 |                    | coef      | exp(coef) | se(coef) | z      | Pr(\>\|z\| |        |
-|--------------------|-----------|-----------|----------|--------|------------|--------|
+|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
 | sex                | 0.699172  | 2.012087  | 0.231422 | 3.021  | 0.002518   | \*\*   |
 | copd               | 0.490690  | 1.633443  | 0.272610 | 1.800  | 0.071866   | .      |
 | ad                 | 0.485754  | 1.625400  | 0.250047 | 1.943  | 0.052059   | .      |
@@ -138,4 +138,4 @@ Patients with high STS scores also have higher linear predictors but the range o
 
 ## 03 Test set: cohort from other geographical location
 
-The analysis is in [the R notebook](03_testset/evaluate_on_test_cohort.Rmd)
+The analysis is in [the R notebook](03_testset/evaluate_on_test_cohort.md)
