@@ -87,7 +87,7 @@ ggplot(modeltmp, aes(x = as.factor(event), y = residuals)) +
 
 #show the distribution of the linear predictors stratified by event
 visualizePredictors(table1yrAll, modeltmp)
-#ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Illustrations_BA/KaplanMeierAllSmaller.png",height = 8, width = 12)
+#ggsave("plots/KaplanMeierAllSmaller.png",height = 8, width = 12)
 
 tmp <- survfit(Surv(time, event)~1, data = finalTableDT[calc_sts <= 4, ])
 tmp2 <- survfit(Surv(time, event)~1, data = finalTableDT[calc_sts > 4 & calc_sts <=8,])
@@ -105,6 +105,7 @@ tmptab3 <- data.table(time = tmp3[["time"]],  surv = tmp3[["surv"]], std.err = t
 tab <- rbind(tab, tmptab)
 tab <- rbind(tab, tmptab2)
 tab <- rbind(tab, tmptab3)
+tab[, label := factor(label, levels=c('STS Score > 8', 'STS Score between 4 and 8', 'STS Score <= 4'))]
 
 #Show the curves for the STS Score
 ggplot(tab, aes(x = time, y = surv, fill = label))+
@@ -118,7 +119,7 @@ ggplot(tab, aes(x = time, y = surv, fill = label))+
   xlim(0,365)+
   ylim(0,1)
 
-#ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Illustrations_BA/KaplanMeierSTS.png",height = 8, width = 12)
+ggsave("plots/KaplanMeierSTS.png",height = 8, width = 12)
 
 
 tmp <- survfit(Surv(time, event)~1, data = finalTableDT[scoreii_log <= 4, ])
@@ -137,6 +138,7 @@ tmptab3 <- data.table(time = tmp3[["time"]],  surv = tmp3[["surv"]], std.err = t
 tab <- rbind(tab, tmptab)
 tab <- rbind(tab, tmptab2)
 tab <- rbind(tab, tmptab3)
+tab[, label := factor(label, levels=c('Euro Score II > 8', 'Euro Score II between 4 and 8', 'Euro Score II <= 4'))]
 
 #Show the curves for the EuroSCORE II
 ggplot(tab, aes(x = time, y = surv, fill = label))+
@@ -150,7 +152,8 @@ ggplot(tab, aes(x = time, y = surv, fill = label))+
   xlim(0,365)+
   ylim(0,1)
 
-#ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Illustrations_BA/KaplanMeierEuro.png",height = 8, width = 12)
+ggsave("plots/KaplanMeierEuro.png",height = 8, width = 12)
+
 tmpcorr2 <- cor(table1yrAll, table1yrAll[, c("medi_statin")])
 tmpCorr <- cor(finalTableDT[,c("age", "sex", "copd", "ad", "medi_statin", "medi_diuretic", "hb", "block", "gradient_mean", "medi_combi1", "regurg_mitral3", "time", "event")])
 mybreaks2 <- c(seq(-1, 0, length.out=ceiling(100/2) + 1), 

@@ -17,7 +17,7 @@ ggplot()+
   labs(x = "", y = "Density") +
   theme_bw()+
   theme(text = element_text(size=20)) 
-#ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Plots/density_time_distrCondensed.png",width = 12, height = 7)
+ggsave("plots/density_time_distrCondensed.png",width = 12, height = 7)
 
 #Only longest available FUP
 ggplot(timeTable, aes(x = time))+
@@ -27,7 +27,7 @@ ggplot(timeTable, aes(x = time))+
   labs(y = "Density") +
   theme_bw()+
   theme(text = element_text(size=20)) 
-#ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Plots/density_time_distr.png",width = 12, height = 7)
+ggsave("plots/density_time_distr.png",width = 12, height = 7)
 
 #Only total nr of FUPs
 ggplot(allTimeTable, aes(x = time))+
@@ -37,5 +37,5 @@ ggplot(allTimeTable, aes(x = time))+
   labs(y = "Density") +
   theme_bw()+
   theme(text = element_text(size=20)) 
-#ggsave("/Users/judith_bernett/Desktop/Bachelorarbeit/Plots/density_Alltime_distr.png",width = 12, height = 7)
+ggsave("plots/density_Alltime_distr.png",width = 12, height = 7)
 

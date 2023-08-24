@@ -53,7 +53,7 @@ ggplot(meanPerYear, aes(x = year, y = mean, colour = risk_level)) +
   labs(x = 'Time in Years', y = 'Mean ± SD', title = 'Development of mean and standard deviation over the years') +
   scale_x_continuous(breaks = c(2012, 2015, 2019)) +
   theme_bw()
-#ggsave("./plots/Distribution_ContinuousVars_Years_RiskStrat.pdf", height = 7, width = 10)
+ggsave("./plots/Distribution_ContinuousVars_Years_RiskStrat.png", height = 7, width = 10)
 
 percentPerYear <- calculate_percent_per_year(baselineBoolean, include_risklvl = TRUE)
 ggplot(percentPerYear, aes(x = Year, y = percent, colour = RiskLevel)) +
@@ -62,9 +62,9 @@ ggplot(percentPerYear, aes(x = Year, y = percent, colour = RiskLevel)) +
   labs(x = 'Time in Years', y = 'Percent of variable = 1', title = 'Development of the boolean variables over the years') +
   theme_bw()
 
-#ggsave("./plots/Distribution_BooleanVars_Years_RiskStrat.pdf", height = 26, width = 14)
+ggsave("./plots/Distribution_BooleanVars_Years_RiskStrat.pdf", height = 26, width = 14)
 
 p <- calculate_factor_percent_per_year(baselineFactor, include_risklvl = TRUE)
 #takes ages to plot
 #p
-#save_plot("./plots/Distribution_FactorVars_Years_RiskStrat.pdf", p, ncol = 3, nrow = 7)
+save_plot("./plots/Distribution_FactorVars_Years_RiskStrat.pdf", p, ncol = 3, nrow = 7)

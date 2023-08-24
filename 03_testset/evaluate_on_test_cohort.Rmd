@@ -1,0 +1,191 @@
+# Evaluating the models on the Luzern cohort
+
+## Imports
+```{r}
+library(data.table)
+source('../00_data_preparation/utils.R')
+library(tidyr)
+library(ggplot2)
+source('../02_models/utils.R')
+library(glmnet)
+library(survival)
+library(survAUC)
+library(caret)
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+
+## Cohort properties
+
+The dataset was preprocessed with `03_testset/prepare_test_set.R`. We first read it in.
+
+```{r}
+test_dt <- fread('../testset_table1yrAllCause.csv')
+head(test_dt)
+```
+
+Let's visualize some properties
+
+```{r}
+# colorblind-friendly palette
+continuous_vars <- test_dt[, c(
+      "proc_date",
+      "age",
+      "scoreii_log",
+      "calc_sts",
+      "hb"
+    )]
+continuous_vars$year <- year(continuous_vars$proc_date)
+continuous_vars <- continuous_vars[,-1]
+continuous_vars <- continuous_vars[, risk_level := .(apply(as.matrix(calc_sts), 1, calculateRiskLevels))]
+meanPerYear <- continuous_vars[, lapply(.SD, mean, na.rm = T), by = .(risk_level, year)]
+meanPerYear <-
+  meanPerYear %>% gather(colnames(meanPerYear[,-c(1, 2)]), key = 'variable', value = 'mean')
+sdPerYear <-
+  continuous_vars[, lapply(.SD, sd, na.rm = T), by = .(risk_level, year)]
+sdPerYear <-
+  sdPerYear %>% gather(colnames(sdPerYear[,-c(1, 2)]), key = 'variable', value = 'sd')
+meanPerYear <-
+  merge(meanPerYear,
+        sdPerYear,
+        by = c('risk_level', 'variable', 'year'))
+meanPerYear <- as.data.table(meanPerYear)
+meanPerYear[, year := factor(year, levels = c(2012:2023))]
+
+category_vars <- test_dt[, colnames(test_dt)[!colnames(test_dt) %in% c('age', 'scoreii_log', 'hb', 'Patient', 'time', 'event')], with=FALSE]
+category_vars <- category_vars[, risk_level := .(apply(as.matrix(calc_sts), 1, calculateRiskLevels))]
+category_vars$year <- year(category_vars$proc_date)
+category_vars <- category_vars[,-1]
+percentPerYear <- category_vars[, lapply(.SD, function(x) sum(x, na.rm = T) / .N), by = .(risk_level, year)]
+percentPerYear <-
+        percentPerYear %>% gather(colnames(percentPerYear[, -c(1, 2)]),
+                                  key = 'variable',
+                                  value = 'percent')
+percentPerYear <- as.data.table(percentPerYear)
+percentPerYear[, year := factor(year, levels = c(2012:2023))]
+
+ggplot(meanPerYear, aes(x = year, y = mean, colour = risk_level, group=risk_level))+
+  geom_line()+
+  geom_pointrange(aes(ymin = mean - sd, ymax = mean + sd))+
+  facet_wrap(~variable , scales = 'free') + theme(legend.position = "none")+
+  labs(x = 'Time in Years', y = 'Mean ± SD', title = 'Development of mean and standard deviation over the years')+
+  scale_x_discrete(guide=guide_axis(check.overlap = TRUE))
+
+```
+
+```{r fig.dim = c(10, 6)}
+ggplot(percentPerYear, aes(x = year, y = percent, colour = risk_level, group=risk_level)) +
+  geom_line() +
+  facet_wrap(~variable, scales = 'free') +
+  labs(x = 'Time in Years', y = 'Percent of variable = 1', title = 'Development of the boolean variables over the years') +
+  theme_bw()+
+  scale_x_discrete(guide=guide_axis(check.overlap = TRUE))
+```
+## Apply models to the test cohort
+
+### Model for all patients
+```{r}
+load('../model_all_smaller.Rda')
+summary(modelAllSmaller)
+predictions <- predict(modelAllSmaller, newdata = test_dt, type = "survival")
+```
+A binary prediction does not work -> all events are classified as non-event except for one, 13 are wrongly predicted as event:
+```{r}
+confusionMatrix(data = as.factor(as.numeric(predictions<=0.5)), reference = as.factor(test_dt$event))
+```
+However, the event group has also higher centered linear predictors than the non-event group, the difference is significant (p-value: 6.523e-06) 
+```{r}
+predictions <- predict(modelAllSmaller, newdata = test_dt, type = "lp")
+modeltmp <- data.table(
+    event = test_dt$event,
+    linear.predictors = predictions
+  )
+ggplot(modeltmp,
+         aes(
+           x = as.factor(event),
+           y = linear.predictors,
+           fill =  as.factor(event)
+         )) +
+    geom_violin() +
+    scale_fill_manual(values = cbPalette[c(1, 6)], name = "Deceased\nwithin\none year") +
+    theme_bw() +
+    theme(text = element_text(size = 20)) +
+    labs(x = "", y = "Centered linear predictors")
+t.test(linear.predictors ~ event, modeltmp)
+```
+
+Hence, the hazard classification works better. From the 10 patients classified as low hazard, no one has an event, from the 283 patients classified as intermediate hazard, only 10 have an event. The remaining 613 are classified as high hazard and have 57 events.
+```{r}
+coxtable <- data.table(linear.predictors = predictions, test_dt)
+compute_kaplan_meier(coxtable)
+```
+
+### Model for intermediate/low risk patients
+```{r}
+load('../model_intermed_low.Rda')
+summary(modelintermed)
+intermed_low_test <- test_dt[calc_sts <= 8]
+predictions <- predict(modelintermed, newdata = intermed_low_test, type = "survival", se.fit = T)
+```
+
+A binary prediction does not work -> all events are classified as non-event, 4 are wrongly predicted as event:
+```{r}
+confusionMatrix(data = as.factor(as.numeric(predictions$fit + predictions$se.fit >=1)), reference = as.factor(intermed_low_test$event))
+```
+Also here, the event group has also higher centered linear predictors than the non-event group, the difference is still significant but the p-value is not as small anymore (0.03219) 
+```{r}
+predictions <- predict(modelintermed, newdata = intermed_low_test, type = "lp")
+modeltmp <- data.table(
+    event = intermed_low_test$event,
+    linear.predictors = predictions
+  )
+ggplot(modeltmp,
+         aes(
+           x = as.factor(event),
+           y = linear.predictors,
+           fill =  as.factor(event)
+         )) +
+    geom_violin() +
+    scale_fill_manual(values = cbPalette[c(1, 6)], name = "Deceased\nwithin\none year") +
+    theme_bw() +
+    theme(text = element_text(size = 20)) +
+    labs(x = "", y = "Centered linear predictors")
+t.test(linear.predictors ~ event, modeltmp)
+```
+Hence, the hazard classification works not as well as with the whole model. From the 49 patients classified as low hazard, 2 had an event, from the 483 patients classified as intermediate hazard, 20 had an event. The remaining 316 are classified as high hazard and have 25 events. The Kaplan-Meier curves for low and intermediate hazard overlap.
+```{r}
+coxtable <- data.table(linear.predictors = predictions, intermed_low_test)
+compute_kaplan_meier(coxtable)
+```
+### Testing the intermediate/low model on all new data
+First, we look at the binary predictions. Again, it does not work, all 67 events are classified as non-event, only 1 patient is wrongly predicted to have an event. 
+```{r}
+predictions <- predict(modelintermed, newdata = test_dt, type = "survival", se.fit = T)
+confusionMatrix(data = as.factor(as.numeric(predictions$fit + predictions$se.fit >=1)), reference = as.factor(test_dt$event))
+```
+However, also here, the event group has also higher centered linear predictors than the non-event group, the difference is significant (0.0008453). 
+```{r}
+predictions <- predict(modelintermed, newdata = test_dt, type = "lp")
+modeltmp <- data.table(
+    event = test_dt$event,
+    linear.predictors = predictions
+  )
+ggplot(modeltmp,
+         aes(
+           x = as.factor(event),
+           y = linear.predictors,
+           fill =  as.factor(event)
+         )) +
+    geom_violin() +
+    scale_fill_manual(values = cbPalette[c(1, 6)], name = "Deceased\nwithin\none year") +
+    theme_bw() +
+    theme(text = element_text(size = 20)) +
+    labs(x = "", y = "Centered linear predictors")
+t.test(linear.predictors ~ event, modeltmp)
+```
+Hence, the hazard classification works better. Now, more patients are classified to be low hazard (51 instead of 10), 3 of them had an event (instead of 0). Also, more patients are classified as intermediate hazard (470 instead of 283), from those, 23 had an event (instead of 10). The remaining 358 (instead of 613) are classified as high hazard and have 41 events (instead of 57). However again, the low hazard curve cuts the intermediate hazard curve.
+```{r}
+coxtable <- data.table(linear.predictors = predictions, test_dt)
+compute_kaplan_meier(coxtable)
+```
+

@@ -15,7 +15,7 @@ ggplot(baselinelabelledDT[Device != ".n" & Device != ".m"], aes(x = Device))+
   theme(axis.text.x = element_text(angle = 45, hjust = 1), text = element_text(size=20))+
   labs(y = "Count")+
   scale_fill_manual(name = "Year of procedure", values = cbPalette)
-#ggsave("./plots/Devices_per_Year.png", height = 7, width = 12)
+ggsave("./plots/Devices_per_Year.png", height = 7, width = 12)
 
 # Device size distribution 
 ggplot(baselinelabelledDT[!is.na(`Valve size (mm)`),], aes(x = as.factor(`Valve size (mm)`)))+
@@ -25,7 +25,7 @@ ggplot(baselinelabelledDT[!is.na(`Valve size (mm)`),], aes(x = as.factor(`Valve 
   labs(y = "Count", x = "Valve size (mm)")+
   scale_fill_manual(guide = F, values = cbPalette)+
   scale_x_discrete(breaks = c(20,23,25,26,27,29,31,34))
-#ggsave("./plots/Device_Sizes.png", height = 7, width = 7)
+ggsave("./plots/Device_Sizes.png", height = 7, width = 7)
 
 # Access site distribution
 ggplot(baselinelabelledDT, aes(x = as.factor(`Main access site`)))+
@@ -35,7 +35,7 @@ ggplot(baselinelabelledDT, aes(x = as.factor(`Main access site`)))+
   labs(y = "Log 10 Count", x = "Main access site")+
   scale_y_log10()+
   scale_fill_manual(guide = F, values = cbPalette)
-#ggsave("./plots/Access_site_log.png", height = 7, width = 7)
+ggsave("./plots/Access_site_log.png", height = 7, width = 7)
 
 ############ Distributions of boolean, continuous and factor variables #########
 
@@ -52,7 +52,7 @@ ggplot(meanPerYear, aes(x = year, y = mean, colour = variable))+
   geom_pointrange(aes(ymin = mean - sd, ymax = mean + sd))+
   facet_wrap(~ variable, ncol = 5, scales = 'free') + theme(legend.position = "none")+
   labs(x = 'Time in Years', y = 'Mean ± SD', title = 'Development of mean and standard deviation over the years')
-#ggsave("./plots/Distribution_ContinuousVars_Years.pdf", height = 7, width = 10)
+ggsave("./plots/Distribution_ContinuousVars_Years.png", height = 7, width = 10)
 
 # Boolean plot: Percent of the boolean variables over the years
 percentPerYear <- calculate_percent_per_year(baselineBoolean)
@@ -60,7 +60,7 @@ ggplot(percentPerYear, aes(x = Year, y = percent, colour = variable))+
   geom_line()+
   facet_wrap(~ variable, ncol = 5, scales = 'free') + theme(legend.position = "none")+
   labs(x = 'Time in Years', y = 'Percent of variable = 1', title = 'Development of the boolean variables over the years')
-#ggsave("./plots/Distribution_BooleanVars_Years.pdf", height = 26, width = 14)
+ggsave("./plots/Distribution_BooleanVars_Years.png", height = 26, width = 14)
 
 #Factor plot: distribution over the years
 p <- calculate_factor_percent_per_year(baselineFactor)

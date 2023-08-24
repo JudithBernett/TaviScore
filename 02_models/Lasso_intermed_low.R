@@ -3,6 +3,7 @@ library(glmnet)
 library(survival)
 library(survAUC)
 library(ggplot2)
+library(caret)
 source("02_models/utils.R")
 finalTableDT <- fread("table1yrAllCause.csv")[,-c("proc_date")]
 
@@ -32,7 +33,7 @@ table1yrIntermediate_sts <- table1yrIntermediate_sts[, ccs_stratified := ifelse(
 table1yrIntermediate_sts <- table1yrIntermediate_sts[, regurg_tri_mit_34 := ifelse(regurg_tricuspid34 == 1 | regurg_mitral34 == 1, 1, 0)]
 table1yrIntermediate <-
   table1yrIntermediate_sts[table1yrIntermediate_sts$calc_sts <= 8,]
-#table1yrIntermediate <- table1yrIntermediate[,-"calc_sts"]
+#table1yrIntermediate <- table1yrIntermediate_sts[,-"calc_sts"]
 
 repeat_lasso <- function(table) {
   coef_list <- list()
@@ -73,19 +74,23 @@ repeat_lasso <- function(table) {
 
 fintermed <-
   'Surv(time, event) ~ sex + copd + ad + medi_diuretic + hb + ccs_stratified + regurg_tricuspid34 + regurg_mitral34'
-modelintermed <- coxph(as.formula(fintermed), table1yrIntermediate)
+modelintermed <- coxph(as.formula(fintermed), table1yrIntermediate, x = T)
 print(summary(modelintermed))
 residuals <- crossvalidation2(fintermed, table1yrIntermediate)
+save(modelintermed, file='model_intermed_low.Rda')
 
 visualizePredictors(table1yrIntermediate, modelintermed)
 coxtable <- data.table(linear.predictors = modelintermed$linear.predictors, table1yrIntermediate)
 #show the Kaplan-Meier curves for the LASSO-on-all: Smaller model
 compute_kaplan_meier(coxtable)
-#ggsave("./plots/low_intermediate_kaplanMeier_stratified.png", height=5, width=8)
+ggsave("./plots/low_intermediate_kaplanMeier_stratified.png", height=5, width=8)
 
 # test on all patients
 
 tableHighRisk <- table1yrIntermediate_sts[calc_sts > 8, ]
+surv_preds <- predict(modelintermed, newdata = tableHighRisk, type = "survival", se.fit = T)
+confusionMatrix(data = as.factor(as.numeric(surv_preds$fit < 0.5)), reference = as.factor(tableHighRisk$event))
+
 lin_preds <- predict(modelintermed, tableHighRisk, type="lp")
 tableHighRisk$linear.predictors <- lin_preds
 
@@ -114,24 +119,29 @@ ggplot(pred_table, aes(x = sts_hazard, y = linear.predictors, fill=sts_hazard))+
   scale_fill_manual(values = cbPalette[c(7, 1, 6)], name = "") +
   theme_bw()+
   theme(text = element_text(size=20))
+ggsave("./plots/low_intermed_model_predicts_x_sts.png", height=5, width=8)
 
 ggplot(pred_table, aes(x = hazard, y = calc_sts, fill=hazard))+
   geom_boxplot()+
   scale_fill_manual(values = cbPalette[c(7, 1, 6)], name = "") +
   theme_bw()+
   theme(text = element_text(size=20))
+ggsave("./plots/low_intermed_model_predicts_x_hazard.png", height=5, width=8)
 
 ggplot(pred_table[calc_sts < 20, ], aes(x = hazard, y = calc_sts, fill=hazard))+
   geom_boxplot()+
   scale_fill_manual(values = cbPalette[c(7, 1, 6)], name = "") +
   theme_bw()+
   theme(text = element_text(size=20))
+ggsave("./plots/low_intermed_model_predicts_x_hazard_leq20.png", height=5, width=8)
 
 
 compute_kaplan_meier(pred_table)
+ggsave("./plots/low_intermed_model_kaplanMeier_all.png", height=5, width=8)
 
 # only for high risk: 
 compute_kaplan_meier(tableHighRisk)
+ggsave("./plots/low_intermed_model_kaplanMeier_only_high.png", height=5, width=8)
 
 # train model on all:
 modelAll <- coxph(as.formula(fintermed), table1yrIntermediate_sts)

@@ -49,13 +49,6 @@ table1yrAll <-
     "tte_regurg_tricuspid3"
   )]
 
-fAll <- 'Surv(time, event) ~ sex + age + copd + ad + medi_anticoagu + medi_statin + medi_diuretic + medi_insulin + hb + gradient_mean + lvef + medi_combi1 + rhythm2 + regurg_mitral3 + regurg_tricuspid3'
-c <- as.data.table(permutationTest(fAll, as.data.table(table1yrAll), 100))
-#ggplot(c, aes(x = c$V1))+geom_density()+scale_x_continuous(limits = c(0,1))
-print(paste("Mean permutation test", mean(c$V1)))
-randomTests$All <- c$V1
-
-
 fAllSmaller<- 'Surv(time, event) ~ sex + age + copd + ad + medi_statin + medi_diuretic + hb + block + gradient_mean + medi_combi1 + regurg_mitral3'
 c <- as.data.table(permutationTest(fAllSmaller, as.data.table(table1yrAll), 100))
 #ggplot(c, aes(x = c$V1))+geom_density()+scale_x_continuous(limits = c(0,1))
@@ -65,7 +58,9 @@ randomTests$AllSmaller <- c$V1
 table1yrIntermediate <- finalTableDT[, -c("Patient", "scoreii_log", "image1", "image3", "proc_access1", "proc_access2", "tte_gradient_mean", "tte_lvef", "tte_regurg_aortic1", "tte_regurg_aortic2", "tte_regurg_aortic3", "tte_regurg_mitral1", "tte_regurg_mitral2", "tte_regurg_mitral3", "tte_regurg_tricuspid1", "tte_regurg_tricuspid2", "tte_regurg_tricuspid3")]
 table1yrIntermediate <- table1yrIntermediate[table1yrIntermediate$calc_sts <=8, ]
 table1yrIntermediate <- table1yrIntermediate[, -"calc_sts"]
-fintermed<- 'Surv(time, event) ~ sex + copd + ad + medi_diuretic + hb + ap_ccs1 + regurg_tricuspid3'
+table1yrIntermediate <- table1yrIntermediate[, ccs_stratified := ifelse(ap_ccs0 == 1 | ap_ccs1 == 1, 1, 0)]
+fintermed <-
+  'Surv(time, event) ~ sex + copd + ad + medi_diuretic + hb + ccs_stratified + regurg_tricuspid34 + regurg_mitral34'
 c <- as.data.table(permutationTest(fintermed, as.data.table(table1yrIntermediate), 100))
 #ggplot(c, aes(x = c$V1))+geom_density()+scale_x_continuous(limits = c(0,1))
 print(paste("Mean permutation test", mean(c$V1)))

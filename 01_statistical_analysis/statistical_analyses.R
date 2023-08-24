@@ -1,6 +1,6 @@
 library(data.table)
 
-finalTableDT <- data.table::fread("./final1")
+finalTableDT <- data.table::fread("./table1yrAllCause.csv")
 
 ########## Summary Table: ###########
 continuous_table <- select(finalTableDT, event, age, height, weight, bmi, bsa, scoreii_log, calc_sts, creatinine, gfr, hb, thrombo, ck, hrate, gradient_mean, lvef)
@@ -9,7 +9,7 @@ continuous_table <- setnames(continuous_table[, sapply(.SD, function(x) list(rou
 continuous_table <- rbind(cbind(c("overall", overall_continuous)), continuous_table)
 continuous_table
 
-categorical_table <- finalTableDT[, -c("Patient", "proc_date", "time","year", "age", "height", "weight", "bmi", "bsa", "scoreii_log", "calc_sts", "creatinine", "gfr", "hb", "thrombo", "ck", "hrate", "tte_lvef", "tte_gradient_mean", "gradient_mean", "lvef", "risk_level", "gradLvefStrat")]
+categorical_table <- finalTableDT[, -c("Patient", "proc_date", "time", "age", "height", "weight", "bmi", "bsa", "scoreii_log", "calc_sts", "creatinine", "gfr", "hb", "thrombo", "ck", "hrate", "tte_lvef", "tte_gradient_mean", "gradient_mean", "lvef")]
 overall_categorical <- categorical_table[, sapply(.SD[,-1], function(x) list(round(sum(x, na.rm = T)/.N,3)))]
 categorical_table <- setnames(categorical_table[, sapply(.SD, function(x) list(round(sum(x, na.rm = T)/.N,3))), by = event], c("event", names(categorical_table[,-1])))
 categorical_table <- rbind(cbind(c("overall", overall_categorical)), categorical_table)
@@ -43,9 +43,10 @@ pvalues_t.test$p.adjustBH <- round(p.adjust(pvalues_t.test$p.value, method = "BH
 pvalues_t.test$significantBH <- ifelse(pvalues_t.test$p.adjustBH < 0.05, 1, 0)
 pvalues_t.test$p.adjustbonferroni <- round(p.adjust(pvalues_t.test$p.value, method = "bonferroni"),3)
 pvalues_t.test$significantbonferroni <- ifelse(pvalues_t.test$p.adjustBH < 0.05, 1, 0)
+fwrite(pvalues_t.test, "tables/t_test_continuous_vars.csv")
 
 ######### 2. Categorical variables: Fisher's Exact Test #########
-categorical_table_testing <- finalTableDT[, -c("Patient", "proc_date", "time","year", "age", "height", "weight", "bmi", "bsa", "scoreii_log", "calc_sts", "creatinine", "gfr", "hb", "thrombo", "ck", "hrate", "tte_lvef", "tte_gradient_mean", "gradient_mean", "lvef", "risk_level", "gradLvefStrat")]
+categorical_table_testing <- finalTableDT[, -c("Patient", "proc_date", "time", "age", "height", "weight", "bmi", "bsa", "scoreii_log", "calc_sts", "creatinine", "gfr", "hb", "thrombo", "ck", "hrate", "tte_lvef", "tte_gradient_mean", "gradient_mean", "lvef")]
 
 pvalues_fisher.test <- data.table(name = character(), p.value = numeric())
 
@@ -88,4 +89,4 @@ pvalues_fisher.test$p.adjustBH <- round(p.adjust(pvalues_fisher.test$p.value, me
 pvalues_fisher.test$significantBH <- ifelse(pvalues_fisher.test$p.adjustBH < 0.05, 1, 0)
 pvalues_fisher.test$p.adjustbonferroni <- round(p.adjust(pvalues_fisher.test$p.value, method = "bonferroni"),3)
 pvalues_fisher.test$significantbonferroni <- ifelse(pvalues_fisher.test$p.adjustbonferroni < 0.05, 1, 0)
-
+fwrite(pvalues_fisher.test, "tables/fisher_test_discrete_vars.csv")
